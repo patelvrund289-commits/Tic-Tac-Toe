@@ -1,0 +1,23 @@
+{
+  "name": "tictactoe-games",
+  "version": "1.0.0",
+  "description": "Real-time Tic-Tac-Toe with multiplayer and AI modes",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "keywords": [
+    "tictactoe",
+    "multiplayer",
+    "ai",
+    "socket.io",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC"
+}
