@@ -1,4 +1,9 @@
 # 🎮 Tic-Tac-Toe Games
+## For Github Push
+git add .
+git commit -m "Your message here"
+git push
+
 
 A complete implementation of Tic-Tac-Toe with both **real-time multiplayer** and **AI opponent** modes using Node.js, Socket.IO, and the Minimax algorithm.
 
