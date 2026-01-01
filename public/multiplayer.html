@@ -168,7 +168,14 @@
 <body>
     <div class="container">
         <h1>👥 Multiplayer Tic-Tac-Toe</h1>
-        <div class="status" id="status">Connecting...</div>
+
+        <div class="game-info">
+            <div class="player-info">
+                <p id="playerInfo">You: X (Wins: 0)</p>
+                <p id="opponentInfo">Opponent: O (Wins: 0)</p>
+            </div>
+            <div class="status" id="status">Connecting...</div>
+        </div>
 
         <div class="board" id="board">
             <div class="cell" data-index="0"></div>
@@ -212,6 +219,10 @@
         let currentRoom = null;
         let mySymbol = null;
         let gameActive = false;
+        let playerWins = 0;
+        let opponentWins = 0;
+        let playerName = 'You';
+        let opponentName = 'Opponent';
 
         // Join game
         joinBtn.addEventListener('click', () => {
@@ -303,6 +314,16 @@
             winnerMessage.textContent = data.message;
             winnerPopup.classList.remove('hidden');
 
+            // Update win counts if there was a winner
+            if (data.winner && data.winnerUsername) {
+                if (data.winner === mySymbol) {
+                    playerWins++;
+                } else {
+                    opponentWins++;
+                }
+                updatePlayerInfo();
+            }
+
             // Disable board
             document.querySelectorAll('.cell').forEach(cell => {
                 cell.classList.add('disabled');
@@ -346,15 +367,28 @@
             alert('Error: ' + message);
         });
 
+        function updatePlayerInfo() {
+            document.getElementById('playerInfo').textContent = `${playerName}: ${mySymbol || 'X'} (Wins: ${playerWins})`;
+            document.getElementById('opponentInfo').textContent = `${opponentName}: ${mySymbol === 'X' ? 'O' : 'X'} (Wins: ${opponentWins})`;
+        }
+
         function resetGame() {
             currentRoom = null;
             mySymbol = null;
             gameActive = false;
+            playerWins = 0;
+            opponentWins = 0;
+            playerName = 'You';
+            opponentName = 'Opponent';
 
             status.textContent = 'Click "Join Game" to start';
             joinBtn.disabled = false;
             resetBtn.disabled = true;
             leaveBtn.disabled = true;
+
+            // Reset player info
+            document.getElementById('playerInfo').textContent = 'You: X (Wins: 0)';
+            document.getElementById('opponentInfo').textContent = 'Opponent: O (Wins: 0)';
 
             // Clear board
             document.querySelectorAll('.cell').forEach(cell => {

@@ -1,7 +1,7 @@
 const TicTacToe = require('../games/tictactoe');
 
 const games = new Map(); // roomId -> game instance
-const players = new Map(); // socketId -> { roomId, playerSymbol, username }
+const players = new Map(); // socketId -> { roomId, playerSymbol, username, userId }
 const waitingPlayers = []; // Queue for matchmaking
 const socketToUser = new Map(); // socketId -> username
 
@@ -32,12 +32,22 @@ function gameHandler(io, users) {
       socket.join(roomId);
       io.sockets.sockets.get(opponentId).join(roomId);
 
+      // Get player names from localStorage (sent via socket handshake or stored)
+      const playerXName = socketToUser.get(socket.id) || 'Player X';
+      const playerOName = socketToUser.get(opponentId) || 'Player O';
+
+      // Store player data
+      players.set(socket.id, { roomId, playerSymbol: 'X', username: playerXName, userId: null });
+      players.set(opponentId, { roomId, playerSymbol: 'O', username: playerOName, userId: null });
+
       // Notify both players
       io.to(roomId).emit('gameStart', {
         roomId,
         yourSymbol: 'X',
         opponentSymbol: 'O',
-        currentPlayer: 'X'
+        currentPlayer: 'X',
+        playerXName: playerXName,
+        playerOName: playerOName
       });
 
       console.log(`Game started in room ${roomId} between ${socket.id} (X) and ${opponentId} (O)`);
@@ -87,16 +97,51 @@ function gameHandler(io, users) {
 
     // Check for game end
     if (game.gameOver) {
+      let winnerUsername = null;
+      let winnerUserId = null;
+
       if (game.winner) {
+        // Find the winner's data
+        for (const [socketId, playerData] of players) {
+          if (playerData.roomId === roomId && playerData.playerSymbol === game.winner) {
+            winnerUsername = playerData.username;
+            winnerUserId = playerData.userId;
+            break;
+          }
+        }
+
         io.to(roomId).emit('gameEnd', {
           winner: game.winner,
-          message: `${game.winner} wins!`
+          winnerUsername: winnerUsername,
+          message: `${winnerUsername} (${game.winner}) wins!`
         });
+
+        // Update stats for both players
+        for (const [socketId, playerData] of players) {
+          if (playerData.roomId === roomId && playerData.userId) {
+            const result = playerData.playerSymbol === game.winner ? 'win' : 'loss';
+            // Emit to update stats (will be handled by client)
+            io.to(socketId).emit('updateStats', {
+              userId: playerData.userId,
+              result: result
+            });
+          }
+        }
       } else {
         io.to(roomId).emit('gameEnd', {
           winner: null,
           message: 'It\'s a draw!'
         });
+
+        // Update stats for draw
+        for (const [socketId, playerData] of players) {
+          if (playerData.roomId === roomId && playerData.userId) {
+            io.to(socketId).emit('updateStats', {
+              userId: playerData.userId,
+              result: 'draw'
+            });
+          }
+        }
       }
       console.log(`Game ended in room ${roomId}`);
     }
