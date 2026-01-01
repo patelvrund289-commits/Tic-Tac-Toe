@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic-Tac-Toe Games</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      padding: 30px;
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      margin-bottom: 30px;
+      color: #4a5568;
+    }
+    .mode-selection {
+      margin-bottom: 30px;
+    }
+    button {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 0 10px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3182ce;
+    }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+    .cell {
+      width: 80px;
+      height: 80px;
+      background: #e2e8f0;
+      border: none;
+      border-radius: 5px;
+      font-size: 36px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background 0.3s;
+    }
+    .cell:hover {
+      background: #cbd5e0;
+    }
+    .cell.x {
+      color: #4299e1;
+    }
+    .cell.o {
+      color: #e53e3e;
+    }
+    .status {
+      margin: 20px 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .room-input {
+      margin: 20px 0;
+    }
+    input {
+      padding: 8px;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+    .winner-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tic-Tac-Toe Games</h1>
+
+    <div class="mode-selection">
+      <a href="multiplayer.html" class="game-link">
+        <button>Multiplayer</button>
+      </a>
+      <a href="ai.html" class="game-link">
+        <button>Play vs AI</button>
+      </a>
+    </div>
+  </div>
+
+
+</body>
+</html>
