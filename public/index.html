@@ -116,17 +116,59 @@
 </head>
 <body>
   <div class="container">
-    <h1>Tic-Tac-Toe Games</h1>
+    <h1>🎮 Tic-Tac-Toe Games</h1>
 
-    <div class="mode-selection">
-      <a href="multiplayer.html" class="game-link">
-        <button>Multiplayer</button>
-      </a>
-      <a href="ai.html" class="game-link">
-        <button>Play vs AI</button>
-      </a>
+    <div id="loading" class="status">Loading...</div>
+
+    <div id="mainContent" class="hidden">
+      <div class="user-info" id="userInfo">
+        <p>Welcome, <span id="username"></span>!</p>
+      </div>
+
+      <div class="mode-selection">
+        <a href="multiplayer.html" class="game-link">
+          <button>👥 Multiplayer</button>
+        </a>
+        <a href="ai.html" class="game-link">
+          <button>🤖 Play vs AI</button>
+        </a>
+      </div>
+
+      <div id="adminLink" class="hidden" style="margin-top: 20px;">
+        <a href="admin.html">
+          <button style="background: #e53e3e;">👑 Admin Panel</button>
+        </a>
+      </div>
     </div>
   </div>
+
+  <script>
+    // Check if user is logged in
+    window.onload = function() {
+      const user = localStorage.getItem('tictactoe_user');
+      if (!user) {
+        // Redirect to login if not logged in
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const userData = JSON.parse(user);
+      document.getElementById('username').textContent = userData.username;
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+
+      // Show admin link for admin users
+      if (userData.isAdmin) {
+        document.getElementById('adminLink').classList.remove('hidden');
+      }
+    };
+
+    // Logout function
+    function logout() {
+      localStorage.removeItem('tictactoe_user');
+      window.location.href = '/login.html';
+    }
+  </script>
 
 
 </body>

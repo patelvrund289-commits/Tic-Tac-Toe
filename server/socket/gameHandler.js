@@ -1,109 +1,180 @@
 const TicTacToe = require('../games/tictactoe');
 
-const games = {}; // Store active games by room ID
-const players = {}; // Store player info by socket ID
+const games = new Map(); // roomId -> game instance
+const players = new Map(); // socketId -> { roomId, playerSymbol, username }
+const waitingPlayers = []; // Queue for matchmaking
+const socketToUser = new Map(); // socketId -> username
 
-function gameHandler(io) {
+function gameHandler(io, users) {
   io.on('connection', (socket) => {
-    console.log(`Player connected: ${socket.id}`);
+    console.log('New player connected:', socket.id);
 
-    // Join a game room
-    socket.on('joinGame', (roomId) => {
-      if (!games[roomId]) {
-        games[roomId] = {
-          game: new TicTacToe(),
-          players: [],
-          spectators: []
-        };
-      }
+  // Join matchmaking queue
+  socket.on('joinGame', () => {
+    console.log('Player joining game:', socket.id);
 
-      const room = games[roomId];
-      if (room.players.length < 2) {
-        room.players.push(socket.id);
-        players[socket.id] = { roomId, symbol: room.players.length === 1 ? 'X' : 'O' };
-        socket.join(roomId);
+    // If there's a waiting player, create a room
+    if (waitingPlayers.length > 0) {
+      const opponentId = waitingPlayers.shift();
+      const roomId = `room_${socket.id}_${opponentId}`;
 
-        // Notify players in the room
-        io.to(roomId).emit('playerJoined', {
-          playerCount: room.players.length,
-          gameState: room.game.getGameState()
-        });
+      // Create game instance
+      const game = new TicTacToe();
 
-        // Start game if two players
-        if (room.players.length === 2) {
-          io.to(roomId).emit('gameStart', {
-            players: room.players.map(id => ({ id, symbol: players[id].symbol })),
-            gameState: room.game.getGameState()
-          });
-        }
-      } else {
-        // Room full, add as spectator
-        room.spectators.push(socket.id);
-        socket.join(roomId);
-        socket.emit('spectatorJoined', room.game.getGameState());
-      }
-    });
+      // Assign players
+      players.set(socket.id, { roomId, playerSymbol: 'X' });
+      players.set(opponentId, { roomId, playerSymbol: 'O' });
 
-    // Handle player move
-    socket.on('makeMove', (data) => {
-      const { roomId, index } = data;
-      const room = games[roomId];
-      if (!room || !room.players.includes(socket.id)) return;
+      // Store game
+      games.set(roomId, game);
 
-      const player = players[socket.id];
-      if (room.game.currentPlayer !== player.symbol) return;
+      // Join room
+      socket.join(roomId);
+      io.sockets.sockets.get(opponentId).join(roomId);
 
-      if (room.game.makeMove(index)) {
-        io.to(roomId).emit('moveMade', {
-          index,
-          player: player.symbol,
-          gameState: room.game.getGameState()
-        });
+      // Notify both players
+      io.to(roomId).emit('gameStart', {
+        roomId,
+        yourSymbol: 'X',
+        opponentSymbol: 'O',
+        currentPlayer: 'X'
+      });
 
-        // Check for game end
-        if (room.game.winner || room.game.isDraw) {
-          io.to(roomId).emit('gameEnd', {
-            winner: room.game.winner,
-            isDraw: room.game.isDraw
-          });
-        }
-      }
-    });
-
-    // Reset game
-    socket.on('resetGame', (roomId) => {
-      const room = games[roomId];
-      if (!room || !room.players.includes(socket.id)) return;
-
-      room.game.reset();
-      io.to(roomId).emit('gameReset', room.game.getGameState());
-    });
-
-    // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log(`Player disconnected: ${socket.id}`);
-      const player = players[socket.id];
-      if (player) {
-        const room = games[player.roomId];
-        if (room) {
-          room.players = room.players.filter(id => id !== socket.id);
-          room.spectators = room.spectators.filter(id => id !== socket.id);
-
-          // Notify remaining players
-          io.to(player.roomId).emit('playerDisconnected', {
-            disconnectedPlayer: socket.id,
-            remainingPlayers: room.players.length
-          });
-
-          // If no players left, delete the room
-          if (room.players.length === 0) {
-            delete games[player.roomId];
-          }
-        }
-        delete players[socket.id];
-      }
-    });
+      console.log(`Game started in room ${roomId} between ${socket.id} (X) and ${opponentId} (O)`);
+    } else {
+      // Add to waiting queue
+      waitingPlayers.push(socket.id);
+      socket.emit('waitingForOpponent');
+      console.log('Player added to waiting queue:', socket.id);
+    }
   });
-}
+
+  // Handle player move
+  socket.on('makeMove', (data) => {
+    const { roomId, index } = data;
+    const player = players.get(socket.id);
+
+    if (!player || player.roomId !== roomId) {
+      socket.emit('error', 'Invalid room or player');
+      return;
+    }
+
+    const game = games.get(roomId);
+    if (!game) {
+      socket.emit('error', 'Game not found');
+      return;
+    }
+
+    // Check if it's the player's turn
+    if (game.currentPlayer !== player.playerSymbol) {
+      socket.emit('error', 'Not your turn');
+      return;
+    }
+
+    // Make the move
+    const moveSuccess = game.makeMove(index);
+    if (!moveSuccess) {
+      socket.emit('error', 'Invalid move');
+      return;
+    }
+
+    // Broadcast updated game state to both players
+    const gameState = game.getGameState();
+    io.to(roomId).emit('gameUpdate', {
+      ...gameState,
+      lastMove: { player: player.playerSymbol, index }
+    });
+
+    // Check for game end
+    if (game.gameOver) {
+      if (game.winner) {
+        io.to(roomId).emit('gameEnd', {
+          winner: game.winner,
+          message: `${game.winner} wins!`
+        });
+      } else {
+        io.to(roomId).emit('gameEnd', {
+          winner: null,
+          message: 'It\'s a draw!'
+        });
+      }
+      console.log(`Game ended in room ${roomId}`);
+    }
+  });
+
+  // Handle game reset
+  socket.on('resetGame', () => {
+    const player = players.get(socket.id);
+    if (!player) return;
+
+    const game = games.get(player.roomId);
+    if (!game) return;
+
+    game.reset();
+
+    // Notify both players
+    io.to(player.roomId).emit('gameReset', game.getGameState());
+    console.log(`Game reset in room ${player.roomId}`);
+  });
+
+  // Handle player disconnect
+  socket.on('disconnect', () => {
+    console.log('Player disconnected:', socket.id);
+
+    const player = players.get(socket.id);
+    if (player) {
+      const { roomId } = player;
+      const game = games.get(roomId);
+
+      // Remove from players map
+      players.delete(socket.id);
+
+      // Remove from waiting queue if present
+      const waitingIndex = waitingPlayers.indexOf(socket.id);
+      if (waitingIndex > -1) {
+        waitingPlayers.splice(waitingIndex, 1);
+      }
+
+      // Notify opponent and end game
+      socket.to(roomId).emit('opponentDisconnected');
+      socket.to(roomId).emit('gameEnd', {
+        winner: null,
+        message: 'Opponent disconnected. Game ended.'
+      });
+
+      // Clean up game
+      games.delete(roomId);
+
+      console.log(`Game ended due to disconnect in room ${roomId}`);
+    }
+  });
+
+  // Handle leave game
+  socket.on('leaveGame', () => {
+    const player = players.get(socket.id);
+    if (player) {
+      const { roomId } = player;
+
+      // Remove from players map
+      players.delete(socket.id);
+
+      // Notify opponent
+      socket.to(roomId).emit('opponentLeft');
+      socket.to(roomId).emit('gameEnd', {
+        winner: null,
+        message: 'Opponent left the game.'
+      });
+
+      // Clean up game
+      games.delete(roomId);
+
+      // Leave socket room
+      socket.leave(roomId);
+
+      console.log(`Player ${socket.id} left game in room ${roomId}`);
+    }
+  });
+  }); // Close io.on('connection') callback
+} // Close gameHandler function
 
 module.exports = gameHandler;

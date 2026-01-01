@@ -1,247 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multiplayer Tic-Tac-Toe</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      color: #333;
-    }
-    .container {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      padding: 30px;
-      text-align: center;
-      max-width: 500px;
-      width: 100%;
-    }
-    h1 {
-      margin-bottom: 30px;
-      color: #4a5568;
-    }
-    .back-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: #e53e3e;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .back-btn:hover {
-      background: #c53030;
-    }
-    .room-input {
-      margin: 20px 0;
-    }
-    input {
-      padding: 8px;
-      border: 1px solid #cbd5e0;
-      border-radius: 4px;
-      margin-right: 10px;
-    }
-    button {
-      background: #4299e1;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 0 10px;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #3182ce;
-    }
-    .game-board {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 20px 0;
-      max-width: 300px;
-      margin: 0 auto;
-    }
-    .cell {
-      width: 80px;
-      height: 80px;
-      background: #e2e8f0;
-      border: none;
-      border-radius: 5px;
-      font-size: 36px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: background 0.3s;
-    }
-    .cell:hover {
-      background: #cbd5e0;
-    }
-    .cell.x {
-      color: #4299e1;
-    }
-    .cell.o {
-      color: #e53e3e;
-    }
-    .status {
-      margin: 20px 0;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .hidden {
-      display: none;
-    }
-    .winner-popup {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .popup-content {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Tic-Tac-Toe</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            min-height: 30px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .cell.x {
+            color: #4CAF50;
+        }
+
+        .cell.o {
+            color: #f44336;
+        }
+
+        .cell.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .winner-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 300px;
+            width: 90%;
+        }
+
+        .popup-content h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .cell {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <a href="index.html" class="back-btn">← Back to Menu</a>
-  <div class="container">
-    <h1>Multiplayer Tic-Tac-Toe</h1>
+    <div class="container">
+        <h1>👥 Multiplayer Tic-Tac-Toe</h1>
+        <div class="status" id="status">Connecting...</div>
 
-    <div id="room-setup" class="room-input">
-      <input type="text" id="room-id" placeholder="Enter Room ID">
-      <button id="join-btn">Join Game</button>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <div class="buttons">
+            <button id="joinBtn">Join Game</button>
+            <button id="resetBtn" disabled>Reset Game</button>
+            <button id="leaveBtn" disabled>Leave Game</button>
+        </div>
     </div>
 
-    <div id="game-area" class="hidden">
-      <div class="status" id="status">Waiting for players...</div>
-      <div class="game-board" id="board">
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
-      </div>
-      <button id="reset-btn" class="hidden">Reset Game</button>
+    <div class="winner-popup hidden" id="winnerPopup">
+        <div class="popup-content">
+            <h2 id="winnerMessage"></h2>
+            <button id="playAgainBtn">Play Again</button>
+            <button id="newGameBtn">New Game</button>
+        </div>
     </div>
 
-    <div id="winner-popup" class="winner-popup hidden">
-      <div class="popup-content">
-        <h2 id="winner-message"></h2>
-        <button id="play-again-btn">Play Again</button>
-        <button id="back-to-menu-btn">Back to Menu</button>
-      </div>
-    </div>
-  </div>
+    <script>
+        const socket = io();
+        const board = document.getElementById('board');
+        const status = document.getElementById('status');
+        const joinBtn = document.getElementById('joinBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const winnerPopup = document.getElementById('winnerPopup');
+        const winnerMessage = document.getElementById('winnerMessage');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const newGameBtn = document.getElementById('newGameBtn');
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let currentPlayer = 'X';
-    let gameActive = false;
+        let currentRoom = null;
+        let mySymbol = null;
+        let gameActive = false;
 
-    document.getElementById('join-btn').addEventListener('click', () => {
-      const roomId = document.getElementById('room-id').value.trim();
-      if (roomId) {
-        socket.emit('joinGame', roomId);
-        document.getElementById('room-setup').classList.add('hidden');
-        document.getElementById('game-area').classList.remove('hidden');
-      }
-    });
+        // Join game
+        joinBtn.addEventListener('click', () => {
+            socket.emit('joinGame');
+            status.textContent = 'Looking for opponent...';
+            joinBtn.disabled = true;
+        });
 
-    document.getElementById('reset-btn').addEventListener('click', () => {
-      socket.emit('resetGame', document.getElementById('room-id').value);
-    });
+        // Reset game
+        resetBtn.addEventListener('click', () => {
+            socket.emit('resetGame');
+        });
 
-    document.getElementById('play-again-btn').addEventListener('click', () => {
-      document.getElementById('winner-popup').classList.add('hidden');
-      document.getElementById('reset-btn').click();
-    });
+        // Leave game
+        leaveBtn.addEventListener('click', () => {
+            socket.emit('leaveGame');
+            resetGame();
+        });
 
-    document.getElementById('back-to-menu-btn').addEventListener('click', () => {
-      window.location.href = 'index.html';
-    });
+        // Cell click
+        board.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('cell') || !gameActive) return;
 
-    // Socket.IO event listeners
-    socket.on('playerJoined', (data) => {
-      document.getElementById('status').textContent = `Players: ${data.playerCount}/2`;
-      updateBoard(data.gameState.board);
-    });
+            const index = parseInt(e.target.dataset.index);
+            socket.emit('makeMove', { roomId: currentRoom, index });
+        });
 
-    socket.on('gameStart', (data) => {
-      gameActive = true;
-      document.getElementById('status').textContent = `Game started! You are ${data.players.find(p => p.id === socket.id).symbol}`;
-      document.getElementById('reset-btn').classList.remove('hidden');
-    });
+        // Play again
+        playAgainBtn.addEventListener('click', () => {
+            socket.emit('resetGame');
+            winnerPopup.classList.add('hidden');
+        });
 
-    socket.on('moveMade', (data) => {
-      updateBoard(data.gameState.board);
-      document.getElementById('status').textContent = `Current turn: ${data.gameState.currentPlayer}`;
-    });
+        // New game
+        newGameBtn.addEventListener('click', () => {
+            socket.emit('leaveGame');
+            resetGame();
+            winnerPopup.classList.add('hidden');
+        });
 
-    socket.on('gameEnd', (data) => {
-      gameActive = false;
-      let message = data.isDraw ? "It's a draw!" : `${data.winner} wins!`;
-      showWinnerPopup(message);
-    });
+        // Socket event handlers
+        socket.on('waitingForOpponent', () => {
+            status.textContent = 'Waiting for another player...';
+        });
 
-    socket.on('gameReset', (data) => {
-      gameActive = true;
-      updateBoard(data.board);
-      document.getElementById('status').textContent = `Game reset! Current turn: ${data.currentPlayer}`;
-    });
+        socket.on('gameStart', (data) => {
+            currentRoom = data.roomId;
+            mySymbol = data.yourSymbol;
+            gameActive = true;
 
-    socket.on('playerDisconnected', (data) => {
-      document.getElementById('status').textContent = `Player disconnected. Waiting for reconnection...`;
-      gameActive = false;
-    });
+            status.textContent = `You are ${mySymbol}. ${data.currentPlayer === mySymbol ? 'Your turn!' : "Opponent's turn"}`;
+            joinBtn.disabled = true;
+            resetBtn.disabled = false;
+            leaveBtn.disabled = false;
 
-    socket.on('spectatorJoined', (data) => {
-      document.getElementById('status').textContent = 'Spectating game...';
-      updateBoard(data.board);
-    });
+            // Enable board
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('disabled');
+            });
+        });
 
-    function updateBoard(board) {
-      const cells = document.querySelectorAll('.cell');
-      cells.forEach((cell, index) => {
-        cell.textContent = board[index] || '';
-        cell.classList.remove('x', 'o');
-        if (board[index] === 'X') cell.classList.add('x');
-        if (board[index] === 'O') cell.classList.add('o');
-      });
-    }
+        socket.on('gameUpdate', (data) => {
+            // Update board
+            data.board.forEach((cell, index) => {
+                const cellElement = document.querySelector(`[data-index="${index}"]`);
+                cellElement.textContent = cell || '';
+                cellElement.className = 'cell';
 
-    function showWinnerPopup(message) {
-      document.getElementById('winner-message').textContent = message;
-      document.getElementById('winner-popup').classList.remove('hidden');
-    }
-  </script>
+                if (cell === 'X') cellElement.classList.add('x');
+                if (cell === 'O') cellElement.classList.add('o');
+            });
+
+            // Update status
+            status.textContent = `You are ${mySymbol}. ${data.currentPlayer === mySymbol ? 'Your turn!' : "Opponent's turn"}`;
+
+            // Disable board if not player's turn
+            const isMyTurn = data.currentPlayer === mySymbol;
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (!isMyTurn || cell.textContent) {
+                    cell.classList.add('disabled');
+                } else {
+                    cell.classList.remove('disabled');
+                }
+            });
+        });
+
+        socket.on('gameEnd', (data) => {
+            gameActive = false;
+            winnerMessage.textContent = data.message;
+            winnerPopup.classList.remove('hidden');
+
+            // Disable board
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.add('disabled');
+            });
+        });
+
+        socket.on('gameReset', (data) => {
+            // Clear board
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.className = 'cell';
+            });
+
+            gameActive = true;
+            status.textContent = `You are ${mySymbol}. ${data.currentPlayer === mySymbol ? 'Your turn!' : "Opponent's turn"}`;
+
+            // Enable board for current player
+            const isMyTurn = data.currentPlayer === mySymbol;
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (!isMyTurn) {
+                    cell.classList.add('disabled');
+                } else {
+                    cell.classList.remove('disabled');
+                }
+            });
+        });
+
+        socket.on('opponentDisconnected', () => {
+            status.textContent = 'Opponent disconnected';
+            gameActive = false;
+            resetBtn.disabled = true;
+        });
+
+        socket.on('opponentLeft', () => {
+            status.textContent = 'Opponent left the game';
+            gameActive = false;
+            resetBtn.disabled = true;
+        });
+
+        socket.on('error', (message) => {
+            alert('Error: ' + message);
+        });
+
+        function resetGame() {
+            currentRoom = null;
+            mySymbol = null;
+            gameActive = false;
+
+            status.textContent = 'Click "Join Game" to start';
+            joinBtn.disabled = false;
+            resetBtn.disabled = true;
+            leaveBtn.disabled = true;
+
+            // Clear board
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.className = 'cell';
+                cell.classList.add('disabled');
+            });
+
+            winnerPopup.classList.add('hidden');
+        }
+
+        // Initialize
+        resetGame();
+    </script>
 </body>
 </html>

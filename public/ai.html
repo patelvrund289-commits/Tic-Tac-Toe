@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Tic-Tac-Toe</title>
+  <title>Tic-Tac-Toe vs AI</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       margin: 0;
-      padding: 0;
+      padding: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -28,35 +28,6 @@
     h1 {
       margin-bottom: 30px;
       color: #4a5568;
-    }
-    .back-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: #e53e3e;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .back-btn:hover {
-      background: #c53030;
-    }
-    button {
-      background: #4299e1;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 0 10px;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #3182ce;
     }
     .game-board {
       display: grid;
@@ -94,6 +65,20 @@
       font-size: 18px;
       font-weight: bold;
     }
+    button {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 0 10px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3182ce;
+    }
     .hidden {
       display: none;
     }
@@ -115,232 +100,327 @@
       border-radius: 10px;
       text-align: center;
     }
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #e53e3e;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background: #c53030;
+    }
+    .user-info {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f7fafc;
+      border-radius: 5px;
+    }
+    .difficulty-selector {
+      margin-bottom: 20px;
+    }
+    .difficulty-selector select {
+      padding: 8px;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
   <a href="index.html" class="back-btn">← Back to Menu</a>
   <div class="container">
-    <h1>Play vs AI</h1>
+    <h1>🤖 Tic-Tac-Toe vs AI</h1>
 
-    <div id="game-area">
-      <div class="status" id="status">Your turn (X)</div>
-      <div class="game-board" id="board">
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
+    <div id="loading" class="status">Loading...</div>
+
+    <div id="gameContent" class="hidden">
+      <div class="user-info">
+        <p>Playing as: <strong id="playerName"></strong> (X)</p>
+        <p>AI: O (Unbeatable)</p>
       </div>
-      <button id="reset-btn">Reset Game</button>
-    </div>
 
-    <div id="winner-popup" class="winner-popup hidden">
-      <div class="popup-content">
-        <h2 id="winner-message"></h2>
-        <button id="play-again-btn">Play Again</button>
-        <button id="back-to-menu-btn">Back to Menu</button>
+      <div class="difficulty-selector">
+        <label for="difficulty">AI Difficulty:</label>
+        <select id="difficulty">
+          <option value="hard">Hard (Minimax)</option>
+          <option value="medium">Medium</option>
+          <option value="easy">Easy</option>
+        </select>
+      </div>
+
+      <div class="game-board">
+        <div class="cell" data-index="0" onclick="makeMove(0)"></div>
+        <div class="cell" data-index="1" onclick="makeMove(1)"></div>
+        <div class="cell" data-index="2" onclick="makeMove(2)"></div>
+        <div class="cell" data-index="3" onclick="makeMove(3)"></div>
+        <div class="cell" data-index="4" onclick="makeMove(4)"></div>
+        <div class="cell" data-index="5" onclick="makeMove(5)"></div>
+        <div class="cell" data-index="6" onclick="makeMove(6)"></div>
+        <div class="cell" data-index="7" onclick="makeMove(7)"></div>
+        <div class="cell" data-index="8" onclick="makeMove(8)"></div>
+      </div>
+
+      <div class="status" id="gameStatus">Your turn! Choose a square.</div>
+
+      <div id="resetBtn" class="hidden">
+        <button onclick="resetGame()">Play Again</button>
       </div>
     </div>
   </div>
 
   <script>
-    let aiGame = null;
+    let currentPlayer = null;
+    let board = ['', '', '', '', '', '', '', '', ''];
+    let gameActive = true;
+    let difficulty = 'hard';
 
-    // Initialize game
-    startAIGame();
+    // Check login status on page load
+    window.onload = function() {
+      const user = localStorage.getItem('tictactoe_user');
+      if (!user) {
+        window.location.href = '/login.html';
+        return;
+      }
 
-    document.getElementById('reset-btn').addEventListener('click', () => {
-      resetAIGame();
-    });
+      currentPlayer = JSON.parse(user);
+      document.getElementById('playerName').textContent = currentPlayer.username;
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('gameContent').classList.remove('hidden');
 
-    document.getElementById('play-again-btn').addEventListener('click', () => {
-      document.getElementById('winner-popup').classList.add('hidden');
-      resetAIGame();
-    });
+      // Set up difficulty change listener
+      document.getElementById('difficulty').addEventListener('change', function() {
+        difficulty = this.value;
+      });
+    };
 
-    document.getElementById('back-to-menu-btn').addEventListener('click', () => {
-      window.location.href = 'index.html';
-    });
+    function makeMove(index) {
+      if (!gameActive || board[index] !== '') return;
 
-    // Game board interaction
-    document.getElementById('board').addEventListener('click', (e) => {
-      if (!aiGame || aiGame.winner || aiGame.isDraw) return;
-      const cell = e.target;
-      if (!cell.classList.contains('cell') || cell.textContent) return;
+      // Player move
+      board[index] = 'X';
+      updateBoard();
 
-      const index = parseInt(cell.dataset.index);
-      makeAIMove(index);
-    });
+      if (checkWinner('X')) {
+        endGame('You win! 🎉');
+        updateStats('win');
+        return;
+      }
 
-    function startAIGame() {
-      aiGame = new TicTacToe();
-      updateBoard(aiGame.board);
-      document.getElementById('status').textContent = 'Your turn (X)';
-    }
-
-    function makeAIMove(index) {
-      if (!aiGame.makeMove(index)) return;
-
-      updateBoard(aiGame.board);
-      if (aiGame.winner || aiGame.isDraw) {
-        let message = aiGame.isDraw ? "It's a draw!" : `${aiGame.winner} wins!`;
-        showWinnerPopup(message);
+      if (board.every(cell => cell !== '')) {
+        endGame('It\'s a draw! 🤝');
+        updateStats('draw');
         return;
       }
 
       // AI move
       setTimeout(() => {
-        const aiMove = aiGame.getBestMove();
-        aiGame.makeMove(aiMove);
-        updateBoard(aiGame.board);
-        if (aiGame.winner || aiGame.isDraw) {
-          let message = aiGame.isDraw ? "It's a draw!" : `${aiGame.winner} wins!`;
-          showWinnerPopup(message);
-        } else {
-          document.getElementById('status').textContent = 'Your turn (X)';
-        }
+        aiMove();
       }, 500);
     }
 
-    function resetAIGame() {
-      aiGame.reset();
-      updateBoard(aiGame.board);
-      document.getElementById('status').textContent = 'Your turn (X)';
+    function aiMove() {
+      let move;
+      if (difficulty === 'hard') {
+        move = getBestMove();
+      } else if (difficulty === 'medium') {
+        move = getMediumMove();
+      } else {
+        move = getRandomMove();
+      }
+
+      if (move !== -1) {
+        board[move] = 'O';
+        updateBoard();
+
+        if (checkWinner('O')) {
+          endGame('AI wins! 🤖');
+          updateStats('loss');
+          return;
+        }
+
+        if (board.every(cell => cell !== '')) {
+          endGame('It\'s a draw! 🤝');
+          updateStats('draw');
+          return;
+        }
+      }
     }
 
-    function updateBoard(board) {
+    function getBestMove() {
+      // Minimax algorithm for unbeatable AI
+      let bestScore = -Infinity;
+      let bestMove = -1;
+
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'O';
+          let score = minimax(board, 0, false);
+          board[i] = '';
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = i;
+          }
+        }
+      }
+
+      return bestMove;
+    }
+
+    function minimax(board, depth, isMaximizing) {
+      let result = checkWinnerForMinimax();
+      if (result !== null) {
+        return result;
+      }
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'O';
+            let score = minimax(board, depth + 1, false);
+            board[i] = '';
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'X';
+            let score = minimax(board, depth + 1, true);
+            board[i] = '';
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
+      }
+    }
+
+    function checkWinnerForMinimax() {
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+      ];
+
+      for (let pattern of winPatterns) {
+        const [a, b, c] = pattern;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          if (board[a] === 'O') return 10; // AI wins
+          if (board[a] === 'X') return -10; // Player wins
+        }
+      }
+
+      if (board.every(cell => cell !== '')) return 0; // Draw
+      return null; // Game continues
+    }
+
+    function getMediumMove() {
+      // Try to win first
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'O';
+          if (checkWinner('O')) {
+            board[i] = '';
+            return i;
+          }
+          board[i] = '';
+        }
+      }
+
+      // Block player win
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'X';
+          if (checkWinner('X')) {
+            board[i] = '';
+            return i;
+          }
+          board[i] = '';
+        }
+      }
+
+      // Random move
+      return getRandomMove();
+    }
+
+    function getRandomMove() {
+      const availableMoves = [];
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') availableMoves.push(i);
+      }
+      return availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    }
+
+    function checkWinner(player) {
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+      ];
+
+      return winPatterns.some(pattern =>
+        pattern.every(index => board[index] === player)
+      );
+    }
+
+    function updateBoard() {
       const cells = document.querySelectorAll('.cell');
-      cells.forEach((cell, index) => {
-        cell.textContent = board[index] || '';
-        cell.classList.remove('x', 'o');
-        if (board[index] === 'X') cell.classList.add('x');
-        if (board[index] === 'O') cell.classList.add('o');
+      board.forEach((cell, index) => {
+        cells[index].textContent = cell;
+        cells[index].className = 'cell';
+        if (cell === 'X') cells[index].classList.add('x');
+        if (cell === 'O') cells[index].classList.add('o');
       });
     }
 
-    function showWinnerPopup(message) {
-      document.getElementById('winner-message').textContent = message;
-      document.getElementById('winner-popup').classList.remove('hidden');
+    function endGame(message) {
+      gameActive = false;
+      document.getElementById('gameStatus').textContent = message;
+      document.getElementById('resetBtn').classList.remove('hidden');
     }
 
-    // TicTacToe class for AI
-    class TicTacToe {
-      constructor() {
-        this.board = Array(9).fill(null);
-        this.currentPlayer = 'X';
-        this.winner = null;
-        this.isDraw = false;
+    function resetGame() {
+      board = ['', '', '', '', '', '', '', '', ''];
+      gameActive = true;
+      updateBoard();
+      document.getElementById('gameStatus').textContent = 'Your turn! Choose a square.';
+      document.getElementById('resetBtn').classList.add('hidden');
+    }
+
+    function updateStats(result) {
+      // Update local user stats
+      if (!currentPlayer.stats) {
+        currentPlayer.stats = { gamesPlayed: 0, wins: 0, losses: 0, draws: 0 };
       }
 
-      makeMove(index) {
-        if (this.board[index] || this.winner) return false;
-        this.board[index] = this.currentPlayer;
-        this.checkWinner();
-        this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
-        return true;
-      }
+      currentPlayer.stats.gamesPlayed++;
 
-      checkWinner() {
-        const winPatterns = [
-          [0,1,2], [3,4,5], [6,7,8],
-          [0,3,6], [1,4,7], [2,5,8],
-          [0,4,8], [2,4,6]
-        ];
+      if (result === 'win') currentPlayer.stats.wins++;
+      else if (result === 'loss') currentPlayer.stats.losses++;
+      else if (result === 'draw') currentPlayer.stats.draws++;
 
-        for (let pattern of winPatterns) {
-          const [a, b, c] = pattern;
-          if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
-            this.winner = this.board[a];
-            return;
-          }
-        }
+      // Save updated stats
+      localStorage.setItem('tictactoe_user', JSON.stringify(currentPlayer));
 
-        if (this.board.every(cell => cell)) {
-          this.isDraw = true;
-        }
-      }
-
-      getBestMove() {
-        let bestScore = -Infinity;
-        let bestMove = -1;
-
-        for (let i = 0; i < 9; i++) {
-          if (!this.board[i]) {
-            this.board[i] = 'O';
-            let score = this.minimax(this.board, 0, false);
-            this.board[i] = null;
-            if (score > bestScore) {
-              bestScore = score;
-              bestMove = i;
-            }
-          }
-        }
-
-        return bestMove;
-      }
-
-      minimax(board, depth, isMaximizing) {
-        const result = this.checkGameState(board);
-        if (result !== null) {
-          return result;
-        }
-
-        if (isMaximizing) {
-          let bestScore = -Infinity;
-          for (let i = 0; i < 9; i++) {
-            if (!board[i]) {
-              board[i] = 'O';
-              let score = this.minimax(board, depth + 1, false);
-              board[i] = null;
-              bestScore = Math.max(score, bestScore);
-            }
-          }
-          return bestScore;
-        } else {
-          let bestScore = Infinity;
-          for (let i = 0; i < 9; i++) {
-            if (!board[i]) {
-              board[i] = 'X';
-              let score = this.minimax(board, depth + 1, true);
-              board[i] = null;
-              bestScore = Math.min(score, bestScore);
-            }
-          }
-          return bestScore;
-        }
-      }
-
-      checkGameState(board) {
-        const winPatterns = [
-          [0,1,2], [3,4,5], [6,7,8],
-          [0,3,6], [1,4,7], [2,5,8],
-          [0,4,8], [2,4,6]
-        ];
-
-        for (let pattern of winPatterns) {
-          const [a, b, c] = pattern;
-          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-            return board[a] === 'O' ? 10 - depth : depth - 10;
-          }
-        }
-
-        if (board.every(cell => cell)) {
-          return 0;
-        }
-
-        return null;
-      }
-
-      reset() {
-        this.board = Array(9).fill(null);
-        this.currentPlayer = 'X';
-        this.winner = null;
-        this.isDraw = false;
-      }
+      // Send stats to server (optional)
+      fetch('/api/update-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: currentPlayer.username,
+          stats: currentPlayer.stats
+        })
+      }).catch(err => console.log('Stats update failed:', err));
     }
   </script>
 </body>
