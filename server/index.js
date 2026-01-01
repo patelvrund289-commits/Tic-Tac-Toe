@@ -170,7 +170,7 @@ app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
 
     // Simple admin credentials (in production, use proper authentication)
-    if (username === 'admin' && password === 'admin123') {
+    if (username === 'admin' && password === '1379') {
         res.json({ success: true, message: 'Admin logged in successfully' });
     } else {
         res.status(401).json({ error: 'Invalid admin credentials' });
